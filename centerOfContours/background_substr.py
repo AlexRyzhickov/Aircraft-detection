@@ -9,7 +9,7 @@ horizon_line_lower_limit = 0
 horizon_line_upper_limit = 0
 
 backSubKNN = cv.createBackgroundSubtractorKNN()
-capture = cv.VideoCapture("../941_075632_0_tr.avi")
+capture = cv.VideoCapture("../data/10_08_12/941_075632_0_tr.avi")
 
 if not capture.isOpened():
     print('Unable to open: ')

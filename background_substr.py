@@ -5,7 +5,12 @@ import numpy as np
 import imutils
 import time
 
-FRAMES_COUNT = 3
+# paths = ["./data/10_08_12/941_075632_0_tl.avi", "./data/10_08_12/941_075632_1_tc.avi", "./data/10_08_12/941_075632_0_tr.avi"]
+# paths = ["./data/28_01_14/675_100834_0_tl.avi", "./data/28_01_14/675_100834_0_tc.avi", "./data/28_01_14/675_100834_0_tr.avi"]
+paths = ["./data/synthetic_data/left.avi", "./data/synthetic_data/right.avi"]
+camera_names = ["Left Camera", "Center Camera", "Right Camera"]
+
+FRAMES_COUNT = len(paths)
 
 start_time = time.time()
 
@@ -15,12 +20,7 @@ horizon_line_y = [0] * FRAMES_COUNT
 horizon_line_lower_limit = [0] * FRAMES_COUNT
 horizon_line_upper_limit = [0] * FRAMES_COUNT
 
-paths = ["./data/10_08_12/941_075632_0_tl.avi", "./data/10_08_12/941_075632_1_tc.avi", "./data/10_08_12/941_075632_0_tr.avi"]
-# paths = ["./data/28_01_14/675_100834_0_tl.avi", "./data/28_01_14/675_100834_0_tc.avi", "./data/28_01_14/675_100834_0_tr.avi"]
-
 captures = [cv.VideoCapture(path) for path in paths]
-
-camera_names = ["Left Camera", "Center Camera", "Right Camera"]
 
 for capture in captures:
     if not capture.isOpened():
@@ -52,13 +52,13 @@ def processingFrame(frame, backSubKNN, pos):
             horizontal_size = abs(right[0] - left[0])
             vertical_size = abs(top[1] - bottom[1])
 
-            if not horizontal_size / vertical_size > 3:
+            if not horizontal_size / vertical_size > 4.5:
                 M = cv.moments(c)
                 m00 = M["m00"]
                 if m00 != 0:
                     cX = int(M["m10"] / M["m00"])
                     cY = int(M["m01"] / M["m00"])
-                    if cY < horizon_line_y[pos] - 10 or cY > horizon_line_y[pos] + 10:
+                    if cY < horizon_line_lower_limit[pos] or cY > horizon_line_upper_limit[pos]:
                         cv.drawContours(frame, [c], -1, (0, 255, 0), 1)
                         cv.circle(frame, (cX, cY), 4, (255, 255, 255), -1)
             elif c.size > 50:

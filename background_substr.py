@@ -3,36 +3,42 @@ import cv2 as cv
 import argparse
 import numpy as np
 import imutils
+import time
 
-backSubKNN_1 = cv.createBackgroundSubtractorKNN()
-backSubKNN_2 = cv.createBackgroundSubtractorKNN()
-backSubKNN_3 = cv.createBackgroundSubtractorKNN()
+FRAMES_COUNT = 3
 
-horizon_line_y = [0, 0, 0]
-horizon_line_lower_limit = [0, 0, 0]
-horizon_line_upper_limit = [0, 0, 0]
+start_time = time.time()
 
-capture_1 = cv.VideoCapture("./data/10_08_12/941_075632_0_tl.avi")
-capture_3 = cv.VideoCapture("./data/10_08_12/941_075632_1_tc.avi")
-capture_2 = cv.VideoCapture("./data/10_08_12/941_075632_0_tr.avi")
+backSub = [cv.createBackgroundSubtractorKNN(), cv.createBackgroundSubtractorKNN(), cv.createBackgroundSubtractorKNN()]
 
-if not capture_1.isOpened() or not capture_2.isOpened() or not capture_3.isOpened():
-    print('Unable to open: ')
-    exit(0)
+horizon_line_y = [0] * FRAMES_COUNT
+horizon_line_lower_limit = [0] * FRAMES_COUNT
+horizon_line_upper_limit = [0] * FRAMES_COUNT
+
+paths = ["./data/10_08_12/941_075632_0_tl.avi", "./data/10_08_12/941_075632_1_tc.avi", "./data/10_08_12/941_075632_0_tr.avi"]
+# paths = ["./data/28_01_14/675_100834_0_tl.avi", "./data/28_01_14/675_100834_0_tc.avi", "./data/28_01_14/675_100834_0_tr.avi"]
+
+captures = [cv.VideoCapture(path) for path in paths]
+
+camera_names = ["Left Camera", "Center Camera", "Right Camera"]
+
+for capture in captures:
+    if not capture.isOpened():
+        print('Unable to open: ')
+        exit(0)
 
 
 def processingFrame(frame, backSubKNN, pos):
     fgMaskKNN = backSubKNN.apply(frame)
 
     cv.rectangle(frame, (10, 2), (100, 20), (255, 255, 255), -1)
-    cv.putText(frame, str(capture_1.get(cv.CAP_PROP_POS_FRAMES)), (15, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+    cv.putText(frame, str(captures[0].get(cv.CAP_PROP_POS_FRAMES)), (15, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
 
     frameKNN = cv.cvtColor(fgMaskKNN, cv.COLOR_GRAY2RGB)
 
     cv.rectangle(frameKNN, (10, 2), (100, 20), (255, 255, 255), -1)
     cv.putText(frameKNN, "KNN", (15, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
 
-    frame_with_cnt = frame.copy()
     cnts = cv.findContours(fgMaskKNN, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
 
@@ -73,31 +79,32 @@ def processingFrame(frame, backSubKNN, pos):
                         horizon_line_lower_limit[pos] = horizon_line_y[pos] - 10
                         horizon_line_upper_limit[pos] = horizon_line_y[pos] + 10
 
-    return frameKNN
 
+isEnd = False
 
 while True:
-    _, frame_1 = capture_1.read()
-    _, frame_2 = capture_2.read()
-    _, frame_3 = capture_3.read()
+    frames = [capture.read()[1] for capture in captures]
 
-    if frame_1 is None or frame_2 is None or frame_3 is None:
+    for frame in frames:
+        if frame is None:
+            isEnd = True
+            break
+
+    if isEnd:
         break
 
-    frameKNN1 = processingFrame(frame_1, backSubKNN_1, 0)
-    frameKNN2 = processingFrame(frame_2, backSubKNN_2, 1)
-    frameKNN3 = processingFrame(frame_3, backSubKNN_3, 2)
+    for i, frame in enumerate(frames):
+        processingFrame(frame, backSub[i], i)
 
-    cv.imshow('Frame1', frame_1)
-    cv.imshow('Frame2', frame_2)
-    cv.imshow('Frame3', frame_3)
-
-    # cv.imshow('FG Mask', frameKNN1)
-    # cv.imshow('FG Mask2', frameKNN2)
-    # cv.imshow('FG Mask3', frameKNN3)
+    for i, frame in enumerate(frames):
+        cv.imshow(camera_names[i], frame)
 
     keyboard = cv.waitKey(30)
     if keyboard == 'q' or keyboard == 27:
         break
-capture_1.release()
+
+for capture in captures:
+    capture.release()
 cv.destroyAllWindows()
+
+print("--- %s seconds ---" % (time.time() - start_time))

@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 import imutils
 import time
+import math
 
 # paths = ["./data/10_08_12/941_075632_0_tl.avi", "./data/10_08_12/941_075632_1_tc.avi", "./data/10_08_12/941_075632_0_tr.avi"]
 # paths = ["./data/28_01_14/675_100834_0_tl.avi", "./data/28_01_14/675_100834_0_tc.avi", "./data/28_01_14/675_100834_0_tr.avi"]
@@ -13,6 +14,57 @@ camera_names = ["Left Camera", "Center Camera", "Right Camera"]
 FRAMES_COUNT = len(paths)
 
 start_time = time.time()
+
+lines = []
+
+def drawlines(img1, lines):
+    r, c, _ = img1.shape
+    for r in lines:
+        color = (0, 0, 0)
+        x0, y0 = map(int, [0, -r[2] / r[1]])
+        x1, y1 = map(int, [c, -(r[2] + r[0] * c) / r[1]])
+        img1 = cv.line(img1, (x0, y0), (x1, y1), color, 1)
+    return img1
+
+
+class Camera():
+    def __init__(self, frame_width, frame_height, f, size_px):
+        self.intrinsic_matrix = np.array([[f / size_px, 0, frame_width / 2], [0, f / size_px, frame_height / 2], [0, 0, 1]])
+        self.rotation, self.translation = np.eye(3), np.zeros(3)
+
+
+c1 = Camera(1024, 640, 40e-3, 22e-6)
+c2 = Camera(1024, 640, 40e-3, 22e-6)
+
+c1.rotation = np.array([[-math.sin(math.pi / 18), 0, math.cos(math.pi / 18)],
+                        [math.sin(math.pi / 36) * math.cos(math.pi / 18), - math.cos(math.pi / 36),
+                         math.sin(math.pi / 36) * math.sin(math.pi / 18)],
+                        [math.cos(math.pi / 36) * math.cos(math.pi / 18), math.sin(math.pi / 36),
+                         math.cos(math.pi / 36) * math.sin(math.pi / 18)]])
+c1.translation = np.array([[-58], [16], [-13]])
+
+c2.rotation = np.array([[math.sin(math.pi / 18), 0, math.cos(math.pi / 18)],
+                        [math.sin(math.pi / 36) * math.cos(math.pi / 18), - math.cos(math.pi / 36),
+                         -math.sin(math.pi / 36) * math.sin(math.pi / 18)],
+                        [math.cos(math.pi / 36) * math.cos(math.pi / 18), math.sin(math.pi / 36),
+                         -math.cos(math.pi / 36) * math.sin(math.pi / 18)]])
+c2.translation = np.array([[-58], [16], [27]])
+
+T = (c2.translation - c1.translation).reshape(3)
+T_cross = np.array([[0, - T[2], T[1]], [T[2], 0, - T[0]], [-T[1], T[0], 0]])
+E = np.dot(c1.rotation, np.dot(T_cross, np.transpose(c2.rotation)))
+F = np.dot(np.linalg.inv(np.transpose(c1.intrinsic_matrix)), np.dot(E, np.linalg.inv(c2.intrinsic_matrix)))
+
+# lines = np.dot(F, np.array([[1, 2, 3], [1, 2, 3], [1, 2, 3]]))
+
+# print(F)
+
+# line = np.dot(F, np.array([45, 100, 1]))
+# print(line)
+# s = np.dot(p1.reshape((1, 3)), np.dot(F, p2))[0]
+# print(s)
+# lines1 = np.dot(F, pts1_final.transpose())
+
 
 backSub = [cv.createBackgroundSubtractorKNN(), cv.createBackgroundSubtractorKNN(), cv.createBackgroundSubtractorKNN()]
 
@@ -41,6 +93,7 @@ def processingFrame(frame, backSubKNN, pos):
 
     cnts = cv.findContours(fgMaskKNN, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
+    centers = []
 
     for c in cnts:
         if c.size > 10:
@@ -61,6 +114,7 @@ def processingFrame(frame, backSubKNN, pos):
                     if cY < horizon_line_lower_limit[pos] or cY > horizon_line_upper_limit[pos]:
                         cv.drawContours(frame, [c], -1, (0, 255, 0), 1)
                         cv.circle(frame, (cX, cY), 4, (255, 255, 255), -1)
+                        centers.append([cX, cY])
             elif c.size > 50:
                 if horizon_line_y[pos] == -1:
                     M = cv.moments(c)
@@ -79,6 +133,16 @@ def processingFrame(frame, backSubKNN, pos):
                         horizon_line_lower_limit[pos] = horizon_line_y[pos] - 10
                         horizon_line_upper_limit[pos] = horizon_line_y[pos] + 10
 
+    if len(centers) > 0:
+        pts1 = np.array(centers)
+        ones = np.ones((len(centers), 1))
+        pts1_final = np.append(pts1, ones, axis=1)
+        return np.dot(F, pts1_final.transpose())
+    else:
+        return None
+        # img3 = drawlines(frames[1], lines.transpose(), lines)
+        # lines = np.dot(F, pts1_final.transpose())
+
 
 isEnd = False
 
@@ -94,10 +158,23 @@ while True:
         break
 
     for i, frame in enumerate(frames):
-        processingFrame(frame, backSub[i], i)
+        epipolar_lines = processingFrame(frame, backSub[i], i)
+        lines.append(epipolar_lines)
 
     for i, frame in enumerate(frames):
-        cv.imshow(camera_names[i], frame)
+        if i == 0 and lines[1] is not None:
+            img = drawlines(frame, lines[1].transpose())
+            cv.imshow(camera_names[i], img)
+        elif i == 1 and lines[0] is not None:
+            img = drawlines(frame, lines[0].transpose())
+            cv.imshow(camera_names[i], img)
+        else:
+            cv.imshow(camera_names[i], frame)
+    lines.clear()
+        # drawlines(drawlines(frame,))
+        # img3 = drawlines(frames[0], lines.transpose(), lines)
+        # print(lines)
+        # cv.imshow("sdfd", img3)
 
     keyboard = cv.waitKey(30)
     if keyboard == 'q' or keyboard == 27:

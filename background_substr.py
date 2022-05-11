@@ -8,8 +8,9 @@ import math
 
 # paths = ["./data/10_08_12/941_075632_0_tl.avi", "./data/10_08_12/941_075632_1_tc.avi", "./data/10_08_12/941_075632_0_tr.avi"]
 # paths = ["./data/28_01_14/675_100834_0_tl.avi", "./data/28_01_14/675_100834_0_tc.avi", "./data/28_01_14/675_100834_0_tr.avi"]
+# camera_names = ["Left Camera", "Center Camera", "Right Camera"]
 paths = ["./data/synthetic_data/left.avi", "./data/synthetic_data/right.avi"]
-camera_names = ["Left Camera", "Center Camera", "Right Camera"]
+camera_names = ["Left Camera", "Right Camera"]
 
 FRAMES_COUNT = len(paths)
 
@@ -45,7 +46,6 @@ c2.translation = np.array([[-58], [16], [27]])
 
 c2.extrinsic_matrix = np.concatenate((c2.rotation, c2.translation), axis=1)
 c2.p = np.dot(c2.intrinsic_matrix, c2.extrinsic_matrix)
-
 
 T = (c2.translation - c1.translation).reshape(3)
 T_cross = np.array([[0, - T[2], T[1]], [T[2], 0, - T[0]], [-T[1], T[0], 0]])

@@ -16,43 +16,13 @@ FRAMES_COUNT = len(paths)
 
 start_time = time.time()
 
+import camera.camera as cm
+import camera.fundamental_matrix as fm
 
-class Camera():
-    def __init__(self, frame_width, frame_height, f, size_px):
-        self.intrinsic_matrix = np.array(
-            [[f / size_px, 0, frame_width / 2], [0, f / size_px, frame_height / 2], [0, 0, 1]])
-        self.rotation, self.translation = np.eye(3), np.zeros(3)
+c1 = cm.Camera(1024, 640, 40e-3, 22e-6, -58, 16, -13, 5, 10)
+c2 = cm.Camera(1024, 640, 40e-3, 22e-6, -58, 16, 27, 5, -10)
 
-
-c1 = Camera(1024, 640, 40e-3, 22e-6)
-c2 = Camera(1024, 640, 40e-3, 22e-6)
-
-c1.rotation = np.array([[-math.sin(math.pi / 18), 0, math.cos(math.pi / 18)],
-                        [math.sin(math.pi / 36) * math.cos(math.pi / 18), - math.cos(math.pi / 36),
-                         math.sin(math.pi / 36) * math.sin(math.pi / 18)],
-                        [math.cos(math.pi / 36) * math.cos(math.pi / 18), math.sin(math.pi / 36),
-                         math.cos(math.pi / 36) * math.sin(math.pi / 18)]])
-c1.translation = np.array([[-58], [16], [-13]])
-
-c1.extrinsic_matrix = np.concatenate((c1.rotation, c1.translation), axis=1)
-c1.p = np.dot(c1.intrinsic_matrix, c1.extrinsic_matrix)
-
-c2.rotation = np.array([[math.sin(math.pi / 18), 0, math.cos(math.pi / 18)],
-                        [math.sin(math.pi / 36) * math.cos(math.pi / 18), - math.cos(math.pi / 36),
-                         -math.sin(math.pi / 36) * math.sin(math.pi / 18)],
-                        [math.cos(math.pi / 36) * math.cos(math.pi / 18), math.sin(math.pi / 36),
-                         -math.cos(math.pi / 36) * math.sin(math.pi / 18)]])
-c2.translation = np.array([[-58], [16], [27]])
-
-c2.extrinsic_matrix = np.concatenate((c2.rotation, c2.translation), axis=1)
-c2.p = np.dot(c2.intrinsic_matrix, c2.extrinsic_matrix)
-
-T = (c2.translation - c1.translation).reshape(3)
-T_cross = np.array([[0, - T[2], T[1]], [T[2], 0, - T[0]], [-T[1], T[0], 0]])
-E = np.dot(c1.rotation, np.dot(T_cross, np.transpose(c2.rotation)))
-F = np.dot(np.linalg.inv(np.transpose(c1.intrinsic_matrix)), np.dot(E, np.linalg.inv(c2.intrinsic_matrix)))
-
-
+F = fm.create_fundamental_matrix(camera1=c1, camera2=c2)
 
 backSub = [cv.createBackgroundSubtractorKNN(), cv.createBackgroundSubtractorKNN(), cv.createBackgroundSubtractorKNN()]
 
@@ -129,6 +99,7 @@ def processingFrame(frame, backSubKNN, pos):
     else:
         return None
 
+
 isEnd = False
 points = []
 
@@ -161,7 +132,7 @@ while True:
                     point_frame_1 = np.array([[point1[0], point1[1]]])
                     point_frame_2 = np.array([[point2[0], point2[1]]])
 
-                    p = cv.triangulatePoints(c1.p, c2.p, point_frame_1.T, point_frame_2.T)
+                    p = cv.triangulatePoints(c1.p_matrix, c2.p_matrix, point_frame_1.T, point_frame_2.T)
                     # however, homgeneous point is returned
                     p /= p[3]
                     print(p.T)

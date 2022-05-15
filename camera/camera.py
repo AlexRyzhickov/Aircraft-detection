@@ -9,7 +9,7 @@ class Camera:
         self.translation_vector = create_translation_vector(x, y, z)
         self.extrinsic_matrix = create_extrinsic_matrix(
             self.rotation_matrix,
-            self.translation_vector
+            np.dot(self.rotation_matrix, self.translation_vector)
         )
         self.p_matrix = create_p_matrix(self.intrinsic_matrix, self.extrinsic_matrix)
 

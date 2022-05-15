@@ -19,6 +19,7 @@ with open('../VDataKamL.txt') as f:
         dict[i + 1] = distance
 
 list2 = []
+list3 = []
 
 for el in list:
     frame_number = el[0]
@@ -27,15 +28,18 @@ for el in list:
     if real_distance is not None:
         list2.append([frame_number, real_distance])
         measurement_error = measured_distance - real_distance
-        # print(measurement_error)
+        list3.append([frame_number, measurement_error])
+
 
 import matplotlib.pyplot as plt
 
 measures = np.array(list).T
 reals = np.array(list2).T
 
-plt.scatter(measures[0], measures[1], s=1, c='blue')
 plt.scatter(reals[0], reals[1], s=2, color='red')
-
+plt.scatter(measures[0], measures[1], s=1, c='blue')
 plt.show()
 
+measurement_error = np.array(list3).T
+plt.scatter(measurement_error[0], abs(measurement_error[1]), s=2, color='red')
+plt.show()

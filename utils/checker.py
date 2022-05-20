@@ -36,10 +36,15 @@ import matplotlib.pyplot as plt
 measures = np.array(list).T
 reals = np.array(list2).T
 
-plt.scatter(reals[0], reals[1], s=2, color='red')
-plt.scatter(measures[0], measures[1], s=1, c='blue')
+plt.scatter(reals[0], reals[1], s=2, color='red', label='real data')
+plt.scatter(measures[0], measures[1], s=1, c='blue', label='measered data')
+plt.legend()
+plt.xlabel("Номер кадра в видеопотоке")
+plt.ylabel("Дистанция до объекта")
 plt.show()
 
 measurement_error = np.array(list3).T
 plt.scatter(measurement_error[0], abs(measurement_error[1]), s=2, color='red')
+plt.xlabel("Номер кадра в видеопотоке")
+plt.ylabel("Ошика в определении дистанции до объекта")
 plt.show()

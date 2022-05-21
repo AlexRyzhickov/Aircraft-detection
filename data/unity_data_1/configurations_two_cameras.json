@@ -1,0 +1,32 @@
+{
+  "cameras": [
+    {
+      "name": "Left Camera",
+      "video_path": "./data/unity_data_1/movie_022.mp4",
+      "frame_width": 1920,
+      "frame_height": 1080,
+      "focus": 0.003507403,
+      "size_px": 0.00000375,
+      "x": -16,
+      "y": 18,
+      "z": -15,
+      "x_rotation_angle": 0,
+      "y_rotation_angle": 0,
+      "z_rotation_angle": 0
+    },
+    {
+      "name": "Right Camera",
+      "video_path": "./data/unity_data_1/movie_023.mp4",
+      "frame_width": 1920,
+      "frame_height": 1080,
+      "focus": 0.003507403,
+      "size_px": 0.00000375,
+      "x": -16,
+      "y": 18,
+      "z": 15,
+      "x_rotation_angle": 0,
+      "y_rotation_angle": 0,
+      "z_rotation_angle": 0
+    }
+  ]
+}

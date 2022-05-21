@@ -11,7 +11,6 @@ def processingFrame(frame,
                     horizon_line_lower_limit,
                     horizon_line_upper_limit
                     ):
-
     fgMaskKNN = backSubKNN.apply(frame)
 
     cv.rectangle(frame, (10, 2), (100, 20), (255, 255, 255), -1)
@@ -43,7 +42,12 @@ def processingFrame(frame,
                     cY = int(m01 / m00)
                     if cY < horizon_line_lower_limit[pos] or cY > horizon_line_upper_limit[pos]:
                         cv.drawContours(frame, [c], -1, (0, 255, 0), 1)
-                        cv.circle(frame, (cX, cY), 4, (255, 255, 255), -1)
+                        # cv.circle(frame, (cX, cY), 4, (255, 255, 255), -1)
+                        cv.circle(frame, (left[0], left[1]), 1, (0, 0, 255), -1)
+                        cv.circle(frame, (right[0], right[1]), 1, (0, 0, 255), -1)
+                        cv.circle(frame, (top[0], top[1]), 1, (0, 0, 255), -1)
+                        cv.circle(frame, (bottom[0], bottom[1]), 1, (0, 0, 255), -1)
+
                         centers.append([cX, cY])
             elif c.size > 50:
                 if horizon_line_y[pos] == -1:

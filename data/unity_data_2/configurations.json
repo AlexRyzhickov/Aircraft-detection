@@ -1,0 +1,46 @@
+{
+  "cameras": [
+    {
+      "name": "Center Camera",
+      "video_path": "./data/unity_data_2/movie_024.mp4",
+      "frame_width": 1920,
+      "frame_height": 1080,
+      "focus": 0.003507403,
+      "size_px": 0.00000375,
+      "x": 0,
+      "y": 18,
+      "z": 0,
+      "x_rotation_angle": 5,
+      "y_rotation_angle": 0,
+      "z_rotation_angle": 0
+    },
+    {
+      "name": "Left Camera",
+      "video_path": "./data/unity_data_2/movie_025.mp4",
+      "frame_width": 1920,
+      "frame_height": 1080,
+      "focus": 0.003507403,
+      "size_px": 0.00000375,
+      "x": -16,
+      "y": 18,
+      "z": -15,
+      "x_rotation_angle": 5,
+      "y_rotation_angle": 10,
+      "z_rotation_angle": 0
+    },
+    {
+      "name": "Right Camera",
+      "video_path": "./data/unity_data_2/movie_026.mp4",
+      "frame_width": 1920,
+      "frame_height": 1080,
+      "focus": 0.003507403,
+      "size_px": 0.00000375,
+      "x": -16,
+      "y": 18,
+      "z": 15,
+      "x_rotation_angle": 5,
+      "y_rotation_angle": -10,
+      "z_rotation_angle": 0
+    }
+  ]
+}

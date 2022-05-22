@@ -24,7 +24,7 @@ def processingFrame(frame,
     cnts = cv.findContours(fgMaskKNN, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
     centers = []
-
+    extreme_points = []
     for c in cnts:
         if c.size > 10:
             left = tuple(c[c[:, :, 0].argmin()][0])
@@ -49,6 +49,7 @@ def processingFrame(frame,
                         cv.circle(frame, (bottom[0], bottom[1]), 1, (0, 0, 255), -1)
 
                         centers.append([cX, cY])
+                        extreme_points.append([left, right])
             elif c.size > 50:
                 if horizon_line_y[pos] == -1:
                     m00, m01, _, is_not_zero = get_moments(c)
@@ -69,9 +70,9 @@ def processingFrame(frame,
         pts1 = np.array(centers)
         ones = np.ones((len(centers), 1))
         pts1_final = np.append(pts1, ones, axis=1)
-        return pts1_final
+        return pts1_final, extreme_points
     else:
-        return []
+        return [], []
 
 
 def get_moments(c):
@@ -97,34 +98,41 @@ def increment_frequency(checker_dict, key):
     else:
         checker_dict[key] = value + 1
 
-def processing_points_on_image(points, main_camera_position, f_matrix_list, p_matrix_list, frame_number, frames):
+def processing_points_on_image(points, main_camera_position, f_matrix_list, p_matrix_list, frame_number, frames, extreme_points):
     main_camera_points = points[main_camera_position]
-
+    main_camera_extreme_points = extreme_points[main_camera_position]
     if len(main_camera_points) == 0: return
 
-    camera_points = []
+    cameras_points = []
+    cameras_extreme_points = []
     for i in range(len(points)):
         if i != main_camera_position:
             if len(points[i]) > 0:
-                camera_points.append(points[i])
+                cameras_points.append(points[i])
+                cameras_extreme_points.append(extreme_points[i])
             else:
                 return
 
-    for main_point in main_camera_points:
+    for main_point_pos, main_point in enumerate(main_camera_points):
         point_set = []
-        for i, points2 in enumerate(camera_points):
+        extreme_point_set = []
+        for i, points2 in enumerate(cameras_points):
             min_dst = 1
             best_point = np.array([[0, 0]])
-            for point in points2:
+            pos = 0
+            for j, point in enumerate(points2):
                 dst = float(np.dot(np.dot(main_point, f_matrix_list[i]), point.transpose()))
                 if abs(dst) < abs(min_dst):
                     min_dst = dst
                     best_point[0][0] = point[0]
                     best_point[0][1] = point[1]
+                    pos = j
             if not min_dst == 1:
                 point_set.append(best_point)
+                extreme_point_set.append(cameras_extreme_points[i][pos])
         if len(point_set) == len(points) - 1:
             point_set.insert(0, np.array([[main_point[0], main_point[1]]]))
+            extreme_point_set.insert(0, main_camera_extreme_points[main_point_pos])
             middle_point = np.array([[0, 0, 0, 0]])
             for i in range(1, len(point_set)):
                 point_frame_1 = np.array([[float(point_set[0][0][0]), float(point_set[0][0][1])]])
@@ -133,7 +141,37 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
                 p /= p[3]
                 middle_point = middle_point + p.T
             print("frame ", frame_number, -middle_point / (len(point_set) - 1))
+            # print(extreme_point_set)
+            # print(len(extreme_point_set))
+
+            left_wing_point = np.array([[0, 0, 0, 0]])
+            for i in range(1, len(extreme_point_set)):
+                point_frame_1 = np.array([[float(extreme_point_set[0][0][0]), float(extreme_point_set[0][0][1])]])
+                point_frame_2 = np.array([[float(extreme_point_set[i][0][0]), float(extreme_point_set[i][0][1])]])
+                p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[i], point_frame_1.T, point_frame_2.T)
+                p /= p[3]
+                left_wing_point = left_wing_point + p.T
+            print("left_wing_point:  ", -left_wing_point / (len(extreme_point_set) - 1))
+
+            right_wing_point = np.array([[0, 0, 0, 0]])
+            for i in range(1, len(extreme_point_set)):
+                point_frame_1 = np.array([[float(extreme_point_set[0][1][0]), float(extreme_point_set[0][1][1])]])
+                point_frame_2 = np.array([[float(extreme_point_set[i][1][0]), float(extreme_point_set[i][1][1])]])
+                p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[i], point_frame_1.T, point_frame_2.T)
+                p /= p[3]
+                right_wing_point = right_wing_point + p.T
+            print("right_wing_point: ", -right_wing_point / (len(extreme_point_set) - 1))
+
+
             for j, frame in enumerate(frames):
                 cv.circle(frame, (int(point_set[j][0][0]), int(point_set[j][0][1])), 4, (255, 0, 0), -1)
+
+                # cv.circle(frame, extreme_point_set[j][0], 1, (255, 0, 255), -1)
+                # cv.circle(frame, extreme_point_set[j][1], 1, (255, 0, 255), -1)
+
+                # cv.circle(frame, (right[0], right[1]), 1, (0, 0, 255), -1)
+                # cv.circle(frame, (top[0], top[1]), 1, (0, 0, 255), -1)
+                # cv.circle(frame, (bottom[0], bottom[1]), 1, (0, 0, 255), -1)
+
                 # cv.putText(frame, str(point_set[j][0][0]) + ":" + str(point_set[j][0][1]), (105, 15),cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
 

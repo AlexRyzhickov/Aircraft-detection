@@ -12,7 +12,9 @@ my_file = open("some.txt", "w")
 
 start_time = time.time()
 
-paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_1/configurations_two_cameras.json")
+# paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_1/configurations_two_cameras.json")
+# paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_2/configurations_two_camera.json")
+paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_2/configurations.json")
 FRAMES_COUNT = len(paths)
 
 f_matrix_list = []
@@ -39,7 +41,7 @@ for capture in captures:
 
 isEnd = False
 points = []
-
+extreme_points = []
 while True:
     frames = [capture.read()[1] for capture in captures]
     for frame in frames:
@@ -55,11 +57,14 @@ while True:
     #     continue
 
     for i, frame in enumerate(frames):
-        pts = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y, horizon_line_lower_limit,
-                              horizon_line_upper_limit)
+        pts, extreme_pts = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y, horizon_line_lower_limit, horizon_line_upper_limit)
         points.append(pts)
-    processing_points_on_image(points, 0, f_matrix_list, p_matrix_list, frame_number, frames)
+        extreme_points.append(extreme_pts)
+
+    processing_points_on_image(points, 0, f_matrix_list, p_matrix_list, frame_number, frames, extreme_points)
+
     points.clear()
+    extreme_points.clear()
 
     for i, frame in enumerate(frames):
         cv.imshow(camera_names[i], frame)

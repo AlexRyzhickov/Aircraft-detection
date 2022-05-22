@@ -97,51 +97,6 @@ def increment_frequency(checker_dict, key):
     else:
         checker_dict[key] = value + 1
 
-
-# def processing_points_on_image(points_on_main_camera, points_on_another_cameras, f_matrix_list, count_cameras):
-#     pairs = {}
-#     checker_dict = {}
-#     for i, point_on_main_camera in enumerate(points_on_main_camera):
-#         for camera_number, points in enumerate(points_on_another_cameras):
-#             best_pair = Pair(0, 0, 0, 0)
-#             min_dst = 1
-#             for j, point in enumerate(points):
-#                 dst = float(np.dot(np.dot(point_on_main_camera, f_matrix_list[camera_number]), point.transpose()))
-#                 if abs(round(dst, 1)) == 0.0:
-#                     if abs(dst) < min_dst:
-#                         min_dst = dst
-#                         best_pair = Pair(i, j, dst, camera_number)
-#             if not min_dst == 1:
-#                 key = (best_pair.point_position_on_another_camera, camera_number)
-#                 pair = pairs.get(key)
-#                 if pair is None:
-#                     pairs[key] = best_pair
-#                     increment_frequency(checker_dict=checker_dict, key=best_pair.point_position_on_main_camera)
-#                 else:
-#                     if pair.dst > best_pair.dst:
-#                         pairs[key] = best_pair
-#     values = pairs.values()
-
-def triangulate_nviews(P, ip):
-    """
-    Triangulate a point visible in n camera views.
-    P is a list of camera projection matrices.
-    ip is a list of homogenised image points. eg [ [x, y, 1], [x, y, 1] ], OR,
-    ip is a 2d array - shape nx3 - [ [x, y, 1], [x, y, 1] ]
-    len of ip must be the same as len of P
-    """
-    if not len(ip) == len(P):
-        raise ValueError('Number of points and number of cameras not equal.')
-    n = len(P)
-    M = np.zeros([3 * n, 4 + n])
-    for i, (x, p) in enumerate(zip(ip, P)):
-        M[3 * i:3 * i + 3, :4] = p
-        M[3 * i:3 * i + 3, 4 + i] = -x
-    V = np.linalg.svd(M)[-1]
-    X = V[-1, :4]
-    return X / X[3]
-
-
 def processing_points_on_image(points, main_camera_position, f_matrix_list, p_matrix_list, frame_number, frames):
     main_camera_points = points[main_camera_position]
 
@@ -159,7 +114,7 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
         point_set = []
         for i, points2 in enumerate(camera_points):
             min_dst = 1
-            best_point = np.array([[0, 0, 1]])
+            best_point = np.array([[0, 0]])
             for point in points2:
                 dst = float(np.dot(np.dot(main_point, f_matrix_list[i]), point.transpose()))
                 if abs(dst) < abs(min_dst):
@@ -169,21 +124,16 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
             if not min_dst == 1:
                 point_set.append(best_point)
         if len(point_set) == len(points) - 1:
-            point_set.insert(0, np.array([[main_point[0], main_point[1], 1]]))
-            p = triangulate_nviews(p_matrix_list, point_set)
-            # print('________')
-            print("frame ", frame_number, p)
-
-            # point_frame_1 = np.array([[float(point_set[0][0][0]), float(point_set[0][0][0])]])
-            # point_frame_2 = np.array([[float(point_set[1][0][0]), float(point_set[1][0][0])]])
-            #
-            # p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[1], point_frame_1.T, point_frame_2.T)
-            # # however, homgeneous point is returned
-            # p /= p[3]
-            # new_p = p.T[0]
-            # print("frame ", frame_number, new_p)
-            # print('________')
-
+            point_set.insert(0, np.array([[main_point[0], main_point[1]]]))
+            middle_point = np.array([[0, 0, 0, 0]])
+            for i in range(1, len(point_set)):
+                point_frame_1 = np.array([[float(point_set[0][0][0]), float(point_set[0][0][1])]])
+                point_frame_2 = np.array([[float(point_set[i][0][0]), float(point_set[i][0][1])]])
+                p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[i], point_frame_1.T, point_frame_2.T)
+                p /= p[3]
+                middle_point = middle_point + p.T
+            print("frame ", frame_number, -middle_point / (len(point_set) - 1))
             for j, frame in enumerate(frames):
                 cv.circle(frame, (int(point_set[j][0][0]), int(point_set[j][0][1])), 4, (255, 0, 0), -1)
+                # cv.putText(frame, str(point_set[j][0][0]) + ":" + str(point_set[j][0][1]), (105, 15),cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
 

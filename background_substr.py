@@ -5,6 +5,7 @@ import time
 import math
 from configuration.configurator import get_cameras_configurations
 from processing.processing import processingFrame, processing_points_on_image
+from processing.movement import calculate_speed
 import camera.fundamental_matrix as fm
 
 np.set_printoptions(suppress=True)
@@ -40,11 +41,13 @@ for capture in captures:
         exit(0)
 
 isEnd = False
+isFistTimeMeasurement = True
 points = []
 extreme_points = []
 contours_sizes = []
-# coordinate_vector_prev = np.array([[0, 0, 0, 0]])
-
+coordinate_vector_prev = np.array([[0, 0, 0, 0]])
+last_frame = 0
+#
 while True:
     frames = [capture.read()[1] for capture in captures]
     for frame in frames:
@@ -60,13 +63,24 @@ while True:
     #     continue
 
     for i, frame in enumerate(frames):
-        pts, extreme_pts, cnts_sizes = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y, horizon_line_lower_limit, horizon_line_upper_limit)
+        pts, extreme_pts, cnts_sizes = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y,
+                                                       horizon_line_lower_limit, horizon_line_upper_limit)
         points.append(pts)
         extreme_points.append(extreme_pts)
         if i == 0:
             contours_sizes = cnts_sizes
 
-    processing_points_on_image(points, 0, f_matrix_list, p_matrix_list, frame_number, frames, extreme_points, contours_sizes)
+    middle_point = processing_points_on_image(points, 0, f_matrix_list, p_matrix_list, frame_number, frames,
+                                              extreme_points, contours_sizes)
+    if frame_number != 0 and middle_point is not None and frame_number % 25 == 0:
+        if isFistTimeMeasurement:
+            coordinate_vector_prev = middle_point
+            last_frame = frame_number
+            isFistTimeMeasurement = False
+        else:
+            calculate_speed(middle_point, coordinate_vector_prev, frame_number - last_frame, 1 / 50, frame_number)
+            coordinate_vector_prev = middle_point
+            last_frame = frame_number
 
     points.clear()
     extreme_points.clear()

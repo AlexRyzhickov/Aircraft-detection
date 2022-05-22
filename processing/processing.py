@@ -111,7 +111,7 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
                                extreme_points, contours_sizes):
     main_camera_points = points[main_camera_position]
     main_camera_extreme_points = extreme_points[main_camera_position]
-    if len(main_camera_points) == 0: return
+    if len(main_camera_points) == 0: return None
 
     middle_point_list = []
     left_wing_point_list = []
@@ -124,7 +124,7 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
                 cameras_points.append(points[i])
                 cameras_extreme_points.append(extreme_points[i])
             else:
-                return
+                return None
 
     for main_point_pos, main_point in enumerate(main_camera_points):
         point_set = []
@@ -166,10 +166,13 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
                 contour = middle_point_list[i]
                 position_max_contour = i
         log_results(frame_number, contour.point, left_wing_point_list[position_max_contour], right_wing_point_list[position_max_contour])
+        return contour.point
 
     if len(middle_point_list) == 1:
         log_results(frame_number, middle_point_list[0].point, left_wing_point_list[0], right_wing_point_list[0])
+        return middle_point_list[0].point
 
+    return None
 
 
 def triangulate_point(point_set, p_matrix_list, position):
@@ -189,5 +192,3 @@ def log_results(frame_number, middle_point, left_wing_point, right_wing_point):
     print("right wing point:  ", right_wing_point)
 
 
-def calculate_speed(coordinate_vector_curr, coordinate_vector_prev, frame_offset, frame_duration_s):
-    difference_vector = (coordinate_vector_curr - coordinate_vector_prev) / (frame_offset * frame_duration_s)

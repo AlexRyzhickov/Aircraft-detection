@@ -42,6 +42,9 @@ for capture in captures:
 isEnd = False
 points = []
 extreme_points = []
+contours_sizes = []
+# coordinate_vector_prev = np.array([[0, 0, 0, 0]])
+
 while True:
     frames = [capture.read()[1] for capture in captures]
     for frame in frames:
@@ -57,14 +60,17 @@ while True:
     #     continue
 
     for i, frame in enumerate(frames):
-        pts, extreme_pts = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y, horizon_line_lower_limit, horizon_line_upper_limit)
+        pts, extreme_pts, cnts_sizes = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y, horizon_line_lower_limit, horizon_line_upper_limit)
         points.append(pts)
         extreme_points.append(extreme_pts)
+        if i == 0:
+            contours_sizes = cnts_sizes
 
-    processing_points_on_image(points, 0, f_matrix_list, p_matrix_list, frame_number, frames, extreme_points)
+    processing_points_on_image(points, 0, f_matrix_list, p_matrix_list, frame_number, frames, extreme_points, contours_sizes)
 
     points.clear()
     extreme_points.clear()
+    contours_sizes.clear()
 
     for i, frame in enumerate(frames):
         cv.imshow(camera_names[i], frame)

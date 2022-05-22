@@ -133,35 +133,15 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
         if len(point_set) == len(points) - 1:
             point_set.insert(0, np.array([[main_point[0], main_point[1]]]))
             extreme_point_set.insert(0, main_camera_extreme_points[main_point_pos])
-            middle_point = np.array([[0, 0, 0, 0]])
-            for i in range(1, len(point_set)):
-                point_frame_1 = np.array([[float(point_set[0][0][0]), float(point_set[0][0][1])]])
-                point_frame_2 = np.array([[float(point_set[i][0][0]), float(point_set[i][0][1])]])
-                p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[i], point_frame_1.T, point_frame_2.T)
-                p /= p[3]
-                middle_point = middle_point + p.T
-            print("frame ", frame_number, -middle_point / (len(point_set) - 1))
-            # print(extreme_point_set)
-            # print(len(extreme_point_set))
 
-            left_wing_point = np.array([[0, 0, 0, 0]])
-            for i in range(1, len(extreme_point_set)):
-                point_frame_1 = np.array([[float(extreme_point_set[0][0][0]), float(extreme_point_set[0][0][1])]])
-                point_frame_2 = np.array([[float(extreme_point_set[i][0][0]), float(extreme_point_set[i][0][1])]])
-                p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[i], point_frame_1.T, point_frame_2.T)
-                p /= p[3]
-                left_wing_point = left_wing_point + p.T
-            print("left_wing_point:  ", -left_wing_point / (len(extreme_point_set) - 1))
+            middle_point = triangulate_point(point_set, p_matrix_list, 0)
+            print("frame ", frame_number, middle_point)
 
-            right_wing_point = np.array([[0, 0, 0, 0]])
-            for i in range(1, len(extreme_point_set)):
-                point_frame_1 = np.array([[float(extreme_point_set[0][1][0]), float(extreme_point_set[0][1][1])]])
-                point_frame_2 = np.array([[float(extreme_point_set[i][1][0]), float(extreme_point_set[i][1][1])]])
-                p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[i], point_frame_1.T, point_frame_2.T)
-                p /= p[3]
-                right_wing_point = right_wing_point + p.T
-            print("right_wing_point: ", -right_wing_point / (len(extreme_point_set) - 1))
+            left_wing_point = triangulate_point(extreme_point_set, p_matrix_list, 0)
+            print("left wing point:   ", left_wing_point)
 
+            right_wing_point = triangulate_point(extreme_point_set, p_matrix_list, 1)
+            print("right wing point:  ", right_wing_point)
 
             for j, frame in enumerate(frames):
                 cv.circle(frame, (int(point_set[j][0][0]), int(point_set[j][0][1])), 4, (255, 0, 0), -1)
@@ -175,3 +155,13 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
 
                 # cv.putText(frame, str(point_set[j][0][0]) + ":" + str(point_set[j][0][1]), (105, 15),cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
 
+
+def triangulate_point(point_set, p_matrix_list, position):
+    point = np.array([[0, 0, 0, 0]])
+    for i in range(1, len(point_set)):
+        point_frame_1 = np.array([[float(point_set[0][position][0]), float(point_set[0][position][1])]])
+        point_frame_2 = np.array([[float(point_set[i][position][0]), float(point_set[i][position][1])]])
+        p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[i], point_frame_1.T, point_frame_2.T)
+        p /= p[3]
+        point = point + p.T
+    return -point / (len(point_set) - 1)

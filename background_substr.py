@@ -9,7 +9,10 @@ from processing.movement import calculate_speed
 import camera.fundamental_matrix as fm
 
 np.set_printoptions(suppress=True)
-my_file = open("some.txt", "w")
+
+file1 = open("some1.txt", "w")
+file2 = open("some2.txt", "w")
+file3 = open("some3.txt", "w")
 
 start_time = time.time()
 
@@ -45,8 +48,10 @@ isFistTimeMeasurement = True
 points = []
 extreme_points = []
 contours_sizes = []
-coordinate_vector_prev = np.array([[0, 0, 0, 0]])
-last_frame = 0
+# coordinate_vector_prev = np.array([[0, 0, 0, 0]])
+# last_frame = 0
+vectors_buff = []
+buff_size = 50
 #
 while True:
     frames = [capture.read()[1] for capture in captures]
@@ -70,17 +75,32 @@ while True:
         if i == 0:
             contours_sizes = cnts_sizes
 
-    middle_point = processing_points_on_image(points, 0, f_matrix_list, p_matrix_list, frame_number, frames,
-                                              extreme_points, contours_sizes)
-    if frame_number != 0 and middle_point is not None and frame_number % 25 == 0:
-        if isFistTimeMeasurement:
-            coordinate_vector_prev = middle_point
-            last_frame = frame_number
-            isFistTimeMeasurement = False
-        else:
-            calculate_speed(middle_point, coordinate_vector_prev, frame_number - last_frame, 1 / 50, frame_number)
-            coordinate_vector_prev = middle_point
-            last_frame = frame_number
+    middle_point, right_point, left_point = processing_points_on_image(points, 0, f_matrix_list, p_matrix_list,
+                                                                       frame_number, frames,
+                                                                       extreme_points, contours_sizes)
+    file1.write("frame: " + str(int(frame_number)) + " " + str(middle_point) + "\n")
+    file2.write("frame: " + str(int(frame_number)) + " " + str(right_point) + "\n")
+    file3.write("frame: " + str(int(frame_number)) + " " + str(left_point) + "\n")
+
+    # if frame_number != 0 and middle_point is not None and frame_number % 25 == 0:
+    #     if isFistTimeMeasurement:
+    #         coordinate_vector_prev = middle_point
+    #         last_frame = frame_number
+    #         isFistTimeMeasurement = False
+    #     else:
+    #         calculate_speed(middle_point, coordinate_vector_prev, frame_number - last_frame, 1 / 50, frame_number)
+    #         coordinate_vector_prev = middle_point
+    #         last_frame = frame_number
+    if len(vectors_buff) == buff_size:
+        last_frame, vector_prev = vectors_buff[0]
+        if vector_prev  is not None and middle_point is not None:
+            calculate_speed(middle_point, vector_prev, frame_number - last_frame, 1 / buff_size, frame_number)
+
+    if len(vectors_buff) < buff_size:
+        vectors_buff.append((frame_number, middle_point))
+    else:
+        vectors_buff.pop(0)
+        vectors_buff.append((frame_number, middle_point))
 
     points.clear()
     extreme_points.clear()

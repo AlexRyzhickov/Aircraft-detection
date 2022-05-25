@@ -1,7 +1,7 @@
 import numpy as np
 import cv2 as cv
 import imutils
-
+import itertools
 
 def processingFrame(frame,
                     backSubKNN,
@@ -43,11 +43,11 @@ def processingFrame(frame,
                     cY = int(m01 / m00)
                     if cY < horizon_line_lower_limit[pos] or cY > horizon_line_upper_limit[pos]:
                         cv.drawContours(frame, [c], -1, (0, 255, 0), 1)
-                        # cv.circle(frame, (cX, cY), 4, (255, 255, 255), -1)
-                        cv.circle(frame, (left[0], left[1]), 1, (0, 0, 255), -1)
-                        cv.circle(frame, (right[0], right[1]), 1, (0, 0, 255), -1)
-                        cv.circle(frame, (top[0], top[1]), 1, (0, 0, 255), -1)
-                        cv.circle(frame, (bottom[0], bottom[1]), 1, (0, 0, 255), -1)
+                        cv.circle(frame, (cX, cY), 4, (0, 0, 255), -1)
+                        cv.circle(frame, (left[0], left[1]), 4, (0, 0, 255), -1)
+                        cv.circle(frame, (right[0], right[1]), 4, (0, 0, 255), -1)
+                        # cv.circle(frame, (top[0], top[1]), 1, (0, 0, 255), -1)
+                        # cv.circle(frame, (bottom[0], bottom[1]), 1, (0, 0, 255), -1)
 
                         centers.append([cX, cY])
                         extreme_points.append([left, right])
@@ -111,7 +111,7 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
                                extreme_points, contours_sizes):
     main_camera_points = points[main_camera_position]
     main_camera_extreme_points = extreme_points[main_camera_position]
-    if len(main_camera_points) == 0: return None
+    if len(main_camera_points) == 0: return None, None, None
 
     middle_point_list = []
     left_wing_point_list = []
@@ -124,7 +124,7 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
                 cameras_points.append(points[i])
                 cameras_extreme_points.append(extreme_points[i])
             else:
-                return None
+                return None, None, None
 
     for main_point_pos, main_point in enumerate(main_camera_points):
         point_set = []
@@ -135,11 +135,12 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
             pos = 0
             for j, point in enumerate(points2):
                 dst = float(np.dot(np.dot(main_point, f_matrix_list[i]), point.transpose()))
-                if abs(dst) < abs(min_dst):
-                    min_dst = dst
-                    best_point[0][0] = point[0]
-                    best_point[0][1] = point[1]
-                    pos = j
+                if abs(round(dst, 1)) == 0.0:
+                    if abs(dst) < abs(min_dst):
+                        min_dst = dst
+                        best_point[0][0] = point[0]
+                        best_point[0][1] = point[1]
+                        pos = j
             if not min_dst == 1:
                 point_set.append(best_point)
                 extreme_point_set.append(cameras_extreme_points[i][pos])
@@ -165,30 +166,30 @@ def processing_points_on_image(points, main_camera_position, f_matrix_list, p_ma
             if contour.size < middle_point_list[i].size:
                 contour = middle_point_list[i]
                 position_max_contour = i
-        log_results(frame_number, contour.point, left_wing_point_list[position_max_contour], right_wing_point_list[position_max_contour])
-        return contour.point
+        # log_results(frame_number, contour.point, left_wing_point_list[position_max_contour],
+        #             right_wing_point_list[position_max_contour])
+        return contour.point, left_wing_point_list[position_max_contour], right_wing_point_list[position_max_contour]
 
     if len(middle_point_list) == 1:
-        log_results(frame_number, middle_point_list[0].point, left_wing_point_list[0], right_wing_point_list[0])
-        return middle_point_list[0].point
+        # log_results(frame_number, middle_point_list[0].point, left_wing_point_list[0], right_wing_point_list[0])
+        return middle_point_list[0].point, left_wing_point_list[0], right_wing_point_list[0]
 
-    return None
+    return None, None, None
 
 
 def triangulate_point(point_set, p_matrix_list, position):
     point = np.array([[0, 0, 0, 0]])
-    for i in range(1, len(point_set)):
-        point_frame_1 = np.array([[float(point_set[0][position][0]), float(point_set[0][position][1])]])
-        point_frame_2 = np.array([[float(point_set[i][position][0]), float(point_set[i][position][1])]])
-        p = cv.triangulatePoints(p_matrix_list[0], p_matrix_list[i], point_frame_1.T, point_frame_2.T)
+    for pair in itertools.combinations(list(range(0, len(point_set))), 2):
+        i, j = pair[0], pair[1]
+        point_frame_1 = np.array([[float(point_set[i][position][0]), float(point_set[i][position][1])]])
+        point_frame_2 = np.array([[float(point_set[j][position][0]), float(point_set[j][position][1])]])
+        p = cv.triangulatePoints(p_matrix_list[i], p_matrix_list[j], point_frame_1.T, point_frame_2.T)
         p /= p[3]
         point = point + p.T
-    return -point / (len(point_set) - 1)
+    return -point / (len(point_set))
 
 
 def log_results(frame_number, middle_point, left_wing_point, right_wing_point):
     print("frame ", frame_number, middle_point)
     print("left wing point:   ", left_wing_point)
     print("right wing point:  ", right_wing_point)
-
-

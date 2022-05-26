@@ -5,11 +5,13 @@ import time
 import math
 from configuration.configurator import get_cameras_configurations
 from processing.processing import processingFrame, processing_points_on_image
-from processing.movement import calculate_speed, calculate_landing_point
+from processing.calculating import calculate_speed, calculate_landing_point
 import camera.fundamental_matrix as fm
 
 np.set_printoptions(suppress=True)
 y_plane = 18
+v_offset = 0.3791
+h_offset = 10.8614
 file1 = open("some1.txt", "w")
 file2 = open("some2.txt", "w")
 file3 = open("some3.txt", "w")
@@ -88,7 +90,7 @@ while True:
         middle_point = np.array([middle_point[2], middle_point[1], middle_point[0]])
         if middle_point[2] < 500:
             middle_point = ((left_point + right_point) / 2)[0][:3]
-            middle_point = np.array([middle_point[2], middle_point[1] - 0.3791, middle_point[0] - 10.8614])
+            middle_point = np.array([middle_point[2], middle_point[1] - v_offset, middle_point[0] - h_offset])
 
     if len(vectors_buff) == buff_size:
         last_frame, vector_prev = frame_numbers_buff[0], vectors_buff[0]

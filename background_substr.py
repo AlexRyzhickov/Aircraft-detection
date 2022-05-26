@@ -5,11 +5,11 @@ import time
 import math
 from configuration.configurator import get_cameras_configurations
 from processing.processing import processingFrame, processing_points_on_image
-from processing.movement import calculate_speed
+from processing.movement import calculate_speed, calculate_landing_point
 import camera.fundamental_matrix as fm
 
 np.set_printoptions(suppress=True)
-
+y_plane = 18
 file1 = open("some1.txt", "w")
 file2 = open("some2.txt", "w")
 file3 = open("some3.txt", "w")
@@ -48,11 +48,12 @@ isFistTimeMeasurement = True
 points = []
 extreme_points = []
 contours_sizes = []
-# coordinate_vector_prev = np.array([[0, 0, 0, 0]])
-# last_frame = 0
+
 vectors_buff = []
+frame_numbers_buff = []
 buff_size = 50
-#
+frames_per_second = 50
+
 while True:
     frames = [capture.read()[1] for capture in captures]
     for frame in frames:
@@ -82,25 +83,30 @@ while True:
     file2.write("frame: " + str(int(frame_number)) + " " + str(right_point) + "\n")
     file3.write("frame: " + str(int(frame_number)) + " " + str(left_point) + "\n")
 
-    # if frame_number != 0 and middle_point is not None and frame_number % 25 == 0:
-    #     if isFistTimeMeasurement:
-    #         coordinate_vector_prev = middle_point
-    #         last_frame = frame_number
-    #         isFistTimeMeasurement = False
-    #     else:
-    #         calculate_speed(middle_point, coordinate_vector_prev, frame_number - last_frame, 1 / 50, frame_number)
-    #         coordinate_vector_prev = middle_point
-    #         last_frame = frame_number
+    if middle_point is not None:
+        middle_point = middle_point[0][:3]
+        middle_point = np.array([middle_point[2], middle_point[1], middle_point[0]])
+        if middle_point[2] < 500:
+            middle_point = ((left_point + right_point) / 2)[0][:3]
+            middle_point = np.array([middle_point[2], middle_point[1] - 0.3791, middle_point[0] - 10.8614])
+
     if len(vectors_buff) == buff_size:
-        last_frame, vector_prev = vectors_buff[0]
-        if vector_prev  is not None and middle_point is not None:
-            calculate_speed(middle_point, vector_prev, frame_number - last_frame, 1 / buff_size, frame_number)
+        last_frame, vector_prev = frame_numbers_buff[0], vectors_buff[0]
+        if middle_point is not None:
+            calculate_speed(middle_point, vector_prev, frame_number - last_frame, 1 / frames_per_second, frame_number)
+            z, x = calculate_landing_point(vectors_buff, y_plane)
+            print("Coordinates x:", x, "z", z)
 
     if len(vectors_buff) < buff_size:
-        vectors_buff.append((frame_number, middle_point))
+        if middle_point is not None:
+            vectors_buff.append(middle_point)
+            frame_numbers_buff.append(frame_number)
     else:
-        vectors_buff.pop(0)
-        vectors_buff.append((frame_number, middle_point))
+        if middle_point is not None:
+            vectors_buff.pop(0)
+            frame_numbers_buff.pop(0)
+            vectors_buff.append(middle_point)
+            frame_numbers_buff.append(frame_number)
 
     points.clear()
     extreme_points.clear()

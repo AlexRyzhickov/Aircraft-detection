@@ -14,11 +14,11 @@ def calculate_landing_point(data, y):
     points = Points(data)
     line_fit = Line.best_fit(points)
 
-    a = line_fit.point
-    b = a + line_fit.direction
+    p1 = line_fit.point
+    p2 = p1 + line_fit.direction
 
-    numerators = -b
-    denominators = a - b
+    numerators = -p2
+    denominators = p1 - p2
     value = (y + numerators[1]) / denominators[1]
     z = value * denominators[0] - numerators[0]
     x = value * denominators[2] - numerators[2]

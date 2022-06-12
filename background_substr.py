@@ -12,14 +12,8 @@ np.set_printoptions(suppress=True)
 y_plane = 18
 v_offset = 0.3791
 h_offset = 10.8614
-file1 = open("some1.txt", "w")
-file2 = open("some2.txt", "w")
-file3 = open("some3.txt", "w")
-
 start_time = time.time()
 
-# paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_1/configurations_two_cameras.json")
-# paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_2/configurations_two_camera.json")
 paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_2/configurations.json")
 FRAMES_COUNT = len(paths)
 
@@ -32,7 +26,7 @@ for i in range(1, len(cameras)):
 
 for camera in cameras:
     p_matrix_list.append(camera.p_matrix)
-    backSub.append(cv.createBackgroundSubtractorKNN())
+    backSub.append(cv.bgsegm.createBackgroundSubtractorCNT())
 
 horizon_line_y = [0] * FRAMES_COUNT
 horizon_line_lower_limit = [0] * FRAMES_COUNT
@@ -56,7 +50,16 @@ frame_numbers_buff = []
 buff_size = 50
 frames_per_second = 50
 
+start_times = []
+after_capt_read_times = []
+process_start_times = []
+process_after_bg_times = []
+process_end_times = []
+before_calc_pos_times = []
+end_times = []
+
 while True:
+    start_times.append(time.time())
     frames = [capture.read()[1] for capture in captures]
     for frame in frames:
         if frame is None:
@@ -67,30 +70,30 @@ while True:
 
     frame_number = captures[0].get(cv.CAP_PROP_POS_FRAMES)
 
-    # if frame_number < 553:
-    #     continue
-
+    after_capt_read_times.append(time.time())
     for i, frame in enumerate(frames):
         pts, extreme_pts, cnts_sizes = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y,
-                                                       horizon_line_lower_limit, horizon_line_upper_limit)
+                                                       horizon_line_lower_limit, horizon_line_upper_limit,
+                                                       process_start_times, process_after_bg_times, process_end_times)
         points.append(pts)
         extreme_points.append(extreme_pts)
         if i == 0:
             contours_sizes = cnts_sizes
 
+    before_calc_pos_times.append(time.time())
+
     middle_point, right_point, left_point = processing_points_on_image(points, 0, f_matrix_list, p_matrix_list,
                                                                        frame_number, frames,
                                                                        extreme_points, contours_sizes)
-    file1.write("frame: " + str(int(frame_number)) + " " + str(middle_point) + "\n")
-    file2.write("frame: " + str(int(frame_number)) + " " + str(right_point) + "\n")
-    file3.write("frame: " + str(int(frame_number)) + " " + str(left_point) + "\n")
 
     if middle_point is not None:
         middle_point = middle_point[0][:3]
         middle_point = np.array([middle_point[2], middle_point[1], middle_point[0]])
+        print('_________________', middle_point)
         if middle_point[2] < 500:
             middle_point = ((left_point + right_point) / 2)[0][:3]
             middle_point = np.array([middle_point[2], middle_point[1] - v_offset, middle_point[0] - h_offset])
+            print('_____________________________', middle_point)
 
     if len(vectors_buff) == buff_size:
         last_frame, vector_prev = frame_numbers_buff[0], vectors_buff[0]
@@ -114,15 +117,56 @@ while True:
     extreme_points.clear()
     contours_sizes.clear()
 
-    for i, frame in enumerate(frames):
-        cv.imshow(camera_names[i], frame)
+    end_times.append(time.time())
 
-    keyboard = cv.waitKey(1)
-    if keyboard == 'q' or keyboard == 27:
-        break
+    # for i, frame in enumerate(frames):
+    #     cv.imshow(camera_names[i], frame)
+    #     if frame_number == 1490:
+    #         cv.imwrite(f'./image{i}_frame{int(1560)}.jpg', frame)
+
+    # keyboard = cv.waitKey(1)
+    # if keyboard == 'q' or keyboard == 27:
+    #     break
 
 for capture in captures:
     capture.release()
 cv.destroyAllWindows()
 
 print("--- %s seconds ---" % (time.time() - start_time))
+
+bg_and_filtering_and_read_period = []
+calculating_positions_period = []
+read_frame_period = []
+bg_and_filtering_period = []
+bg_period = []
+filtering_period = []
+
+for item in zip(start_times, before_calc_pos_times, end_times, after_capt_read_times):
+    a = item[1] - item[0]
+    b = item[2] - item[1]
+    c = item[2] - item[0]
+    b1 = item[3] - item[0]
+    b2 = item[1] - item[3]
+
+    if a / c != 1 and b / c != 0:
+        bg_and_filtering_and_read_period.append(a / c)
+        calculating_positions_period.append(b / c)
+        read_frame_period.append(b1 / c)
+        bg_and_filtering_period.append(b2 / c)
+
+print(len(start_times))
+print(len(bg_and_filtering_and_read_period))
+print(np.array(bg_and_filtering_and_read_period).mean(axis=0), "% - Bg, filtering and reading captures")
+print(np.array(calculating_positions_period).mean(axis=0), "% - Calculating speed, position in space and landing coordinates")
+print(np.array(read_frame_period).mean(axis=0), "% - Reading")
+print(np.array(bg_and_filtering_period).mean(axis=0), "% - Bg, filtering")
+
+for item in zip(process_start_times, process_after_bg_times, process_end_times):
+    a = item[1] - item[0]
+    process_start_times = item[2] - item[1]
+    c = item[2] - item[0]
+
+    bg_period.append(a / c)
+    filtering_period.append(process_start_times / c)
+print(np.array(bg_period).mean(axis=0), "% - Background subscription")
+print(np.array(filtering_period).mean(axis=0), "% - Filtering")

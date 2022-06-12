@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import cv2 as cv
 import imutils
@@ -9,17 +10,23 @@ def processingFrame(frame,
                     frame_number: int,
                     horizon_line_y,
                     horizon_line_lower_limit,
-                    horizon_line_upper_limit
+                    horizon_line_upper_limit,
+                    process_start_times,
+                    process_after_bg_times,
+                    process_end_times
                     ):
+    process_start_times.append(time.time())
     fgMaskKNN = backSubKNN.apply(frame)
 
-    cv.rectangle(frame, (10, 2), (100, 20), (255, 255, 255), -1)
-    cv.putText(frame, str(frame_number), (15, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+    # cv.rectangle(frame, (10, 2), (100, 20), (255, 255, 255), -1)
+    # cv.putText(frame, str(frame_number), (15, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+    #
+    # frameKNN = cv.cvtColor(fgMaskKNN, cv.COLOR_GRAY2RGB)
+    #
+    # cv.rectangle(frameKNN, (10, 2), (100, 20), (255, 255, 255), -1)
+    # cv.putText(frameKNN, "KNN", (15, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
 
-    frameKNN = cv.cvtColor(fgMaskKNN, cv.COLOR_GRAY2RGB)
-
-    cv.rectangle(frameKNN, (10, 2), (100, 20), (255, 255, 255), -1)
-    cv.putText(frameKNN, "KNN", (15, 15), cv.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+    process_after_bg_times.append(time.time())
 
     cnts = cv.findContours(fgMaskKNN, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
@@ -67,7 +74,7 @@ def processingFrame(frame,
                         horizon_line_y[pos] = (horizon_line_y[pos] + cY) / 2
                         horizon_line_lower_limit[pos] = horizon_line_y[pos] - 10
                         horizon_line_upper_limit[pos] = horizon_line_y[pos] + 10
-
+    process_end_times.append(time.time())
     if len(centers) > 0:
         pts1 = np.array(centers)
         ones = np.ones((len(centers), 1))

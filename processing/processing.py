@@ -9,7 +9,10 @@ def processingFrame(frame,
                     frame_number: int,
                     horizon_line_y,
                     horizon_line_lower_limit,
-                    horizon_line_upper_limit
+                    horizon_line_upper_limit,
+                    contour_min_size,
+                    contour_large_size,
+                    size_difference
                     ):
     fgMaskKNN = backSubKNN.apply(frame)
 
@@ -27,7 +30,7 @@ def processingFrame(frame,
     extreme_points = []
     cnts_sizes = []
     for c in cnts:
-        if c.size > 10:
+        if c.size > contour_min_size:
             left = tuple(c[c[:, :, 0].argmin()][0])
             right = tuple(c[c[:, :, 0].argmax()][0])
             top = tuple(c[c[:, :, 1].argmin()][0])
@@ -36,7 +39,7 @@ def processingFrame(frame,
             horizontal_size = abs(right[0] - left[0])
             vertical_size = abs(top[1] - bottom[1])
 
-            if not horizontal_size / vertical_size > 6:
+            if not horizontal_size / vertical_size > size_difference:
                 m00, m01, m10, is_not_zero = get_moments(c)
                 if is_not_zero:
                     cX = int(m10 / m00)
@@ -50,7 +53,7 @@ def processingFrame(frame,
                         centers.append([cX, cY])
                         extreme_points.append([left, right])
                         cnts_sizes.append(c.size)
-            elif c.size > 50:
+            elif c.size > contour_large_size:
                 if horizon_line_y[pos] == -1:
                     m00, m01, _, is_not_zero = get_moments(c)
                     if is_not_zero:

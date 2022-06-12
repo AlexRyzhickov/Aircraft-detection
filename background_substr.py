@@ -3,22 +3,20 @@ import cv2 as cv
 import numpy as np
 import time
 import math
-from configuration.configurator import get_cameras_configurations
+from configuration.configurator import get_cameras_configurations, get_scene_configurations
 from processing.processing import processingFrame, processing_points_on_image
 from processing.calculating import calculate_speed, calculate_landing_point
 from processing.printing import printing_results
 import camera.fundamental_matrix as fm
 
 np.set_printoptions(suppress=True)
-y_plane = 18
-v_offset = 0.3791
-h_offset = 10.8614
 
 start_time = time.time()
 
 # paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_1/configurations_two_cameras.json")
 # paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_2/configurations_two_camera.json")
 paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_2/configurations.json")
+scene_conf = get_scene_configurations("./data/scene_configuration/scene_configuration.json")
 FRAMES_COUNT = len(paths)
 
 f_matrix_list = []
@@ -48,11 +46,9 @@ isFistTimeMeasurement = True
 points = []
 extreme_points = []
 contours_sizes = []
-
 vectors_buff = []
 frame_numbers_buff = []
-buff_size = 50
-frames_per_second = 50
+frame_duration =  1 / scene_conf.frames_per_second
 
 while True:
     frames = [capture.read()[1] for capture in captures]
@@ -67,7 +63,8 @@ while True:
 
     for i, frame in enumerate(frames):
         pts, extreme_pts, cnts_sizes = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y,
-                                                       horizon_line_lower_limit, horizon_line_upper_limit)
+                                                       horizon_line_lower_limit, horizon_line_upper_limit,
+                                                       scene_conf.contour_min_size, scene_conf.contour_large_size, scene_conf.size_difference)
         points.append(pts)
         extreme_points.append(extreme_pts)
         if i == 0:
@@ -80,20 +77,19 @@ while True:
     if middle_point is not None:
         middle_point = middle_point[0][:3]
         middle_point = np.array([middle_point[2], middle_point[1], middle_point[0]])
-        if middle_point[2] < 500:
+        if middle_point[2] < scene_conf.close_range:
             middle_point = ((left_point + right_point) / 2)[0][:3]
-            middle_point = np.array([middle_point[2], middle_point[1] - v_offset, middle_point[0] - h_offset])
+            middle_point = np.array([middle_point[2], middle_point[1] - scene_conf.v_offset, middle_point[0] - scene_conf.h_offset])
 
-    if len(vectors_buff) == buff_size:
+    if len(vectors_buff) == scene_conf.buff_size:
         last_frame, vector_prev = frame_numbers_buff[0], vectors_buff[0]
         if middle_point is not None:
             frame_offset = frame_number - last_frame
-            frame_duration = 1 / frames_per_second
             velocity = calculate_speed(middle_point, vector_prev, frame_offset, frame_duration)
-            z, x = calculate_landing_point(vectors_buff, y_plane)
+            z, x = calculate_landing_point(vectors_buff, scene_conf.y_plane)
             printing_results(frame_number, middle_point, frame_offset, frame_duration, velocity, x, z)
 
-    if len(vectors_buff) < buff_size:
+    if len(vectors_buff) < scene_conf.buff_size:
         if middle_point is not None:
             vectors_buff.append(middle_point)
             frame_numbers_buff.append(frame_number)

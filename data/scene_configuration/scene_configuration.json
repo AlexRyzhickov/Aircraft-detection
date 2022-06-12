@@ -1,0 +1,11 @@
+{
+  "y_plane": 18.0,
+  "v_offset": 0.3791,
+  "h_offset": 10.8614,
+  "buff_size": 50,
+  "frames_per_second": 50,
+  "contour_min_size": 10,
+  "contour_large_size": 50,
+  "size_difference": 6,
+  "close_range": 500
+}

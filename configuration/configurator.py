@@ -30,6 +30,28 @@ class CameraConfigurations:
         self.y_rotation_angle = y_rotation_angle
         self.z_rotation_angle = z_rotation_angle
 
+class SceneConfigurations:
+    def __init__(self,
+                 y_plane: float,
+                 v_offset: float,
+                 h_offset: float,
+                 buff_size: int,
+                 frames_per_second: int,
+                 contour_min_size: int,
+                 contour_large_size: int,
+                 size_difference: float,
+                 close_range: int,
+                 ):
+        self.y_plane = y_plane
+        self.v_offset  = v_offset
+        self.h_offset = h_offset
+        self.buff_size = buff_size
+        self.frames_per_second = frames_per_second
+        self.contour_min_size = contour_min_size
+        self.contour_large_size = contour_large_size
+        self.size_difference = size_difference
+        self.close_range = close_range
+
 
 def get_cameras_configurations(filepath: str):
     with open(filepath) as json_data:
@@ -72,3 +94,22 @@ def get_cameras_configurations(filepath: str):
                              )
                    for camera_conf in cameras_configurations]
         return paths, names, cameras
+
+
+def get_scene_configurations(filepath: str):
+    with open(filepath) as json_data:
+        data = json.load(json_data)
+
+        scene_conf = SceneConfigurations(
+            data["y_plane"],
+            data["v_offset"],
+            data["h_offset"],
+            data["buff_size"],
+            data["frames_per_second"],
+            data["contour_min_size"],
+            data["contour_large_size"],
+            data["size_difference"],
+            data["close_range"]
+        )
+
+        return scene_conf

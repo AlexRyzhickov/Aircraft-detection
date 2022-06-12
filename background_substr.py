@@ -6,15 +6,13 @@ import math
 from configuration.configurator import get_cameras_configurations
 from processing.processing import processingFrame, processing_points_on_image
 from processing.calculating import calculate_speed, calculate_landing_point
+from processing.printing import printing_results
 import camera.fundamental_matrix as fm
 
 np.set_printoptions(suppress=True)
 y_plane = 18
 v_offset = 0.3791
 h_offset = 10.8614
-file1 = open("some1.txt", "w")
-file2 = open("some2.txt", "w")
-file3 = open("some3.txt", "w")
 
 start_time = time.time()
 
@@ -67,9 +65,6 @@ while True:
 
     frame_number = captures[0].get(cv.CAP_PROP_POS_FRAMES)
 
-    # if frame_number < 553:
-    #     continue
-
     for i, frame in enumerate(frames):
         pts, extreme_pts, cnts_sizes = processingFrame(frame, backSub[i], i, frame_number, horizon_line_y,
                                                        horizon_line_lower_limit, horizon_line_upper_limit)
@@ -81,9 +76,6 @@ while True:
     middle_point, right_point, left_point = processing_points_on_image(points, 0, f_matrix_list, p_matrix_list,
                                                                        frame_number, frames,
                                                                        extreme_points, contours_sizes)
-    file1.write("frame: " + str(int(frame_number)) + " " + str(middle_point) + "\n")
-    file2.write("frame: " + str(int(frame_number)) + " " + str(right_point) + "\n")
-    file3.write("frame: " + str(int(frame_number)) + " " + str(left_point) + "\n")
 
     if middle_point is not None:
         middle_point = middle_point[0][:3]
@@ -95,9 +87,11 @@ while True:
     if len(vectors_buff) == buff_size:
         last_frame, vector_prev = frame_numbers_buff[0], vectors_buff[0]
         if middle_point is not None:
-            calculate_speed(middle_point, vector_prev, frame_number - last_frame, 1 / frames_per_second, frame_number)
+            frame_offset = frame_number - last_frame
+            frame_duration = 1 / frames_per_second
+            velocity = calculate_speed(middle_point, vector_prev, frame_offset, frame_duration)
             z, x = calculate_landing_point(vectors_buff, y_plane)
-            print("Coordinates x:", x, "z", z)
+            printing_results(frame_number, middle_point, frame_offset, frame_duration, velocity, x, z)
 
     if len(vectors_buff) < buff_size:
         if middle_point is not None:

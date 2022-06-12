@@ -46,8 +46,6 @@ def processingFrame(frame,
                         cv.circle(frame, (cX, cY), 4, (0, 0, 255), -1)
                         cv.circle(frame, (left[0], left[1]), 4, (0, 0, 255), -1)
                         cv.circle(frame, (right[0], right[1]), 4, (0, 0, 255), -1)
-                        # cv.circle(frame, (top[0], top[1]), 1, (0, 0, 255), -1)
-                        # cv.circle(frame, (bottom[0], bottom[1]), 1, (0, 0, 255), -1)
 
                         centers.append([cX, cY])
                         extreme_points.append([left, right])

@@ -8,3 +8,6 @@ An application for determining the landing coordinates, speed and position in sp
 ![image1_frame1560](https://user-images.githubusercontent.com/42917261/173618169-dd76e26c-1535-420d-bed3-6ea089db0518.jpg)
 #### View from the right camera
 ![image2_frame1560](https://user-images.githubusercontent.com/42917261/173618083-c76fea1c-526b-4c6f-92f9-b2e36bf1f185.jpg)
+
+## Example of program output 
+![image](https://user-images.githubusercontent.com/42917261/173620869-370b4a80-5e4b-4cb4-92f8-ff5847846ab2.png)

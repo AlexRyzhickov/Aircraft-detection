@@ -1,5 +1,12 @@
 import json
 import camera.camera as cm
+from enum import Enum
+
+class BgMethod(Enum):
+    KNN = 1
+    CNT = 2
+    MOG = 3
+    MOG2 = 4
 
 
 class CameraConfigurations:
@@ -30,6 +37,7 @@ class CameraConfigurations:
         self.y_rotation_angle = y_rotation_angle
         self.z_rotation_angle = z_rotation_angle
 
+
 class SceneConfigurations:
     def __init__(self,
                  y_plane: float,
@@ -41,9 +49,10 @@ class SceneConfigurations:
                  contour_large_size: int,
                  size_difference: float,
                  close_range: int,
+                 bg_method: BgMethod
                  ):
         self.y_plane = y_plane
-        self.v_offset  = v_offset
+        self.v_offset = v_offset
         self.h_offset = h_offset
         self.buff_size = buff_size
         self.frames_per_second = frames_per_second
@@ -51,6 +60,7 @@ class SceneConfigurations:
         self.contour_large_size = contour_large_size
         self.size_difference = size_difference
         self.close_range = close_range
+        self.bg_method = bg_method
 
 
 def get_cameras_configurations(filepath: str):
@@ -59,7 +69,7 @@ def get_cameras_configurations(filepath: str):
         cameras = data["cameras"]
 
         if len(cameras) < 2:
-            raise Exception('The minimum number of cameras is less than two')
+            raise Exception("The minimum number of cameras is less than two")
 
         cameras_configurations = []
 
@@ -96,6 +106,19 @@ def get_cameras_configurations(filepath: str):
         return paths, names, cameras
 
 
+def analyze_bg_method_str(method_name: str):
+    if method_name == "KNN":
+        return BgMethod.KNN
+    elif method_name == "CNT":
+        return BgMethod.CNT
+    elif method_name == "MOG":
+        return BgMethod.MOG
+    elif method_name == "MOG2":
+        return BgMethod.MOG2
+    elif method_name == None:
+        return BgMethod.CNT
+    raise Exception("Incorrect bg method name")
+
 def get_scene_configurations(filepath: str):
     with open(filepath) as json_data:
         data = json.load(json_data)
@@ -109,7 +132,8 @@ def get_scene_configurations(filepath: str):
             data["contour_min_size"],
             data["contour_large_size"],
             data["size_difference"],
-            data["close_range"]
+            data["close_range"],
+            analyze_bg_method_str(data.get("bg_method"))
         )
 
         return scene_conf

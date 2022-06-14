@@ -6,7 +6,7 @@ import math
 from configuration.configurator import get_cameras_configurations, get_scene_configurations
 from processing.processing import processingFrame, processing_points_on_image
 from processing.calculating import calculate_speed, calculate_landing_point
-from processing.printing import printing_results
+from processing.support import printing_results, get_bg_method
 import camera.fundamental_matrix as fm
 
 np.set_printoptions(suppress=True)
@@ -28,7 +28,7 @@ for i in range(1, len(cameras)):
 
 for camera in cameras:
     p_matrix_list.append(camera.p_matrix)
-    backSub.append(cv.createBackgroundSubtractorKNN())
+    backSub.append(get_bg_method(scene_conf.bg_method))
 
 horizon_line_y = [0] * FRAMES_COUNT
 horizon_line_lower_limit = [0] * FRAMES_COUNT

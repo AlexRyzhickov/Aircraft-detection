@@ -2,21 +2,24 @@ from __future__ import print_function
 import cv2 as cv
 import numpy as np
 import time
-import math
 from configuration.configurator import get_cameras_configurations, get_scene_configurations
 from processing.processing import processingFrame, processing_points_on_image
 from processing.calculating import calculate_speed, calculate_landing_point
 from processing.support import printing_results, get_bg_method
 import camera.fundamental_matrix as fm
+import argparse
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-camera_conf", "--camera_conf_path", help="Cameras configurations path")
+parser.add_argument("-scene_conf", "--scene_conf_path", help="Scene configurations path")
 
 np.set_printoptions(suppress=True)
 
 start_time = time.time()
 
-# paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_1/configurations_two_cameras.json")
-# paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_2/configurations_two_camera.json")
-paths, camera_names, cameras = get_cameras_configurations("./data/unity_data_2/configurations.json")
-scene_conf = get_scene_configurations("./data/scene_configuration/scene_configuration.json")
+args = parser.parse_args()
+paths, camera_names, cameras = get_cameras_configurations(args.camera_conf_path)
+scene_conf = get_scene_configurations(args.scene_conf_path)
 FRAMES_COUNT = len(paths)
 
 f_matrix_list = []
@@ -48,7 +51,7 @@ extreme_points = []
 contours_sizes = []
 vectors_buff = []
 frame_numbers_buff = []
-frame_duration =  1 / scene_conf.frames_per_second
+frame_duration = 1 / scene_conf.frames_per_second
 
 while True:
     frames = [capture.read()[1] for capture in captures]

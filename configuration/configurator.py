@@ -119,6 +119,7 @@ def analyze_bg_method_str(method_name: str):
         return BgMethod.CNT
     raise Exception("Incorrect bg method name")
 
+
 def get_scene_configurations(filepath: str):
     with open(filepath) as json_data:
         data = json.load(json_data)
